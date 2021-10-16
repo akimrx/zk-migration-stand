@@ -20,7 +20,7 @@ find_leader () {
 
 
 cleanup () {
-    echo "Cleaning up stand..."
+    echo "Cleanup previous stand..."
     $(docker-compose down --remove-orphans)
     $(sudo rm -rf clickhouse/data/* || true)
     $(rm -rf zoo*/data/version-2 || true)

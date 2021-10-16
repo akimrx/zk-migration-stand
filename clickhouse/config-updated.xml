@@ -21,15 +21,11 @@
 
     <zookeeper>
         <node index="1">
-            <host>zoo1</host>
+            <host>zzz1</host>
             <port>2181</port>
         </node>
         <node index="2">
-            <host>zoo2</host>
-            <port>2181</port>
-        </node>
-        <node index="3">
-            <host>zoo3</host>
+            <host>zzz2</host>
             <port>2181</port>
         </node>
         <session_timeout_ms>120000</session_timeout_ms>

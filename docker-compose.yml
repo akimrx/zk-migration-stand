@@ -23,6 +23,8 @@ services:
     volumes:
       - /home/akimrx/zk-migration-stand/zoo1/data:/data
       - /home/akimrx/zk-migration-stand/zoo1/zoo.cfg:/conf/zoo.cfg:ro
+    environment:
+        KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
 
   zoo2:
     image: zookeeper
@@ -34,6 +36,8 @@ services:
     volumes:
       - /home/akimrx/zk-migration-stand/zoo2/zoo.cfg:/conf/zoo.cfg:ro
       - /home/akimrx/zk-migration-stand/zoo2/data:/data
+    environment:
+        KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
 
   zoo3:
     image: zookeeper
@@ -45,6 +49,8 @@ services:
     volumes:
       - /home/akimrx/zk-migration-stand/zoo3/zoo.cfg:/conf/zoo.cfg:ro
       - /home/akimrx/zk-migration-stand/zoo3/data:/data
+    environment:
+        KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
 
   zzz1:
     image: zookeeper
@@ -56,6 +62,8 @@ services:
     volumes:
       - /home/akimrx/zk-migration-stand/zzz1/zoo.cfg:/conf/zoo.cfg:ro
       - /home/akimrx/zk-migration-stand/zzz1/data:/data
+    environment:
+        KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
 
   zzz2:
     image: zookeeper
@@ -67,6 +75,8 @@ services:
     volumes:
       - /home/akimrx/zk-migration-stand/zzz2/zoo.cfg:/conf/zoo.cfg:ro
       - /home/akimrx/zk-migration-stand/zzz2/data:/data
+    environment:
+        KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
 
   zzz3:
     image: zookeeper
@@ -78,3 +88,5 @@ services:
     volumes:
       - /home/akimrx/zk-migration-stand/zzz3/zoo.cfg:/conf/zoo.cfg:ro
       - /home/akimrx/zk-migration-stand/zzz3/data:/data
+    environment:
+        KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"

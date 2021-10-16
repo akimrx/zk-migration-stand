@@ -7,6 +7,16 @@ ORIGINAL_CH_CFG="config-original.xml"
 UPDATED_CH_CFG="config-updated.xml"
 
 
+find_leader () {
+    for ZK_INDEX in 1 2 3;
+    do
+        if $(echo srvr | nc localhost 218${ZK_INDEX} | grep -q 'leader'); then
+            echo "Leader is zoo${ZK_INDEX}"
+        fi
+    done
+}
+
+
 cleanup () {
     $(docker-compose down --remove-orphans)
     $(rm -rf clickhouse/data/*)
@@ -76,6 +86,11 @@ prepare () {
     $(docker-compose up -d)
 }
 
+
+if [[ $1 == "leader" ]];
+then
+    find_leader
+fi
 
 if [[ $1 == "cleanup" ]];
 then

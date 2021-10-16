@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 ORIGINAL_ZK_CFG="zoo-original.cfg"
 JOINT_ZK_CFG="zoo-joint.cfg"
 
@@ -18,22 +20,23 @@ find_leader () {
 
 
 cleanup () {
+    echo "Cleaning up stand..."
     $(docker-compose down --remove-orphans)
-    $(rm -rf clickhouse/data/*)
-    $(rm -rf zoo*/data/version-2)
-    $(rm -rf zzz*/data/version-2)
-    }
+    $(sudo rm -rf clickhouse/data/* || true)
+    $(rm -rf zoo*/data/version-2 || true)
+    $(rm -rf zzz*/data/version-2 || true)
+}
 
 original_ch () {
     echo "Switching Clickhouse to original config..."
-    $(rm -f clickhouse/config.xml)
+    $(rm -f clickhouse/config.xml || true)
     $(ln -s ${ORIGINAL_CH_CFG} clickhouse/config.xml)
 }
 
 
 updated_ch () {
     echo "Switching Clickhouse to original config..."
-    $(rm -f clickhouse/config.xml)
+    $(rm -f clickhouse/config.xml || true)
     $(ln -s ${UPDATED_CH_CFG} clickhouse/config.xml)
 }
 
@@ -42,13 +45,13 @@ original_zk () {
 
     for ZK_NODE in zoo1 zoo2 zoo3;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(rm -f ${ZK_NODE}/zoo.cfg || true)
         $(ln -s ${ORIGINAL_ZK_CFG} ${ZK_NODE}/zoo.cfg);
     done
 
     for ZK_NODE in zzz1 zzz2;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(rm -f ${ZK_NODE}/zoo.cfg || true)
         $(ln -s ${ORIGINAL_ZK_CFG} $ZK_NODE/zoo.cfg);
     done
 
@@ -61,13 +64,13 @@ joint_zk () {
 
     for ZK_NODE in zoo1 zoo2 zoo3;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(rm -f ${ZK_NODE}/zoo.cfg || true)
         $(ln -s ${JOINT_ZK_CFG} $ZK_NODE/zoo.cfg)
     done
 
     for ZK_NODE in zzz1 zzz2;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(rm -f ${ZK_NODE}/zoo.cfg || true)
         $(ln -s ${JOINT_ZK_CFG} $ZK_NODE/zoo.cfg);
     done
     
@@ -77,10 +80,19 @@ joint_zk () {
 
 
 prepare () {
+    echo "Cleanup old data..."
     cleanup
+    
+    echo "Prepare stand..."
     original_zk
     original_ch
+    $(mkdir -p clickhouse/data || true)
     $(docker-compose up -d)
+    sleep 2
+
+    echo "Prepare table in the Clickhouse..."
+    $(pwd)/init-ch
+    echo "Stand is ready!"
 }
 
 

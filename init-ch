@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-docker exec -it ch01 clickhouse-client --query="create database testing;"
-
-docker exec -it ch01 clickhouse-client --query="CREATE TABLE testing.sample (EventDate DateTime,Text String,ver UInt16) ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/sample', '{replica}', ver) PARTITION BY toYYYYMM(EventDate) ORDER BY EventDate;"
-

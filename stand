@@ -9,96 +9,205 @@ ORIGINAL_CH_CFG="config-original.xml"
 UPDATED_CH_CFG="config-updated.xml"
 
 
-find_leader () {
-    for ZK_INDEX in 1 2 3;
+find_zk_leader () {
+    for INDEX in 1 2 3 4 5;
     do
-        if $(echo srvr | nc localhost 218${ZK_INDEX} | grep -q 'leader'); then
-            echo "Leader is zoo${ZK_INDEX}"
+        if $(echo srvr | nc localhost 218${INDEX} | grep -q 'leader');
+        then
+            echo "Leader is zoo${INDEX}"
         fi
     done
 }
 
-cleanup () {
-    echo "Cleanup previous stand..."
-    $(docker-compose down --remove-orphans)
-    $(sudo rm -rf clickhouse/data/* || true)
-    $(rm -rf zoo*/data/version-2 || true)
-    $(rm -rf zzz*/data/version-2 || true)
-}
 
-original_ch () {
-    echo "Switching Clickhouse to original config..."
-    $(rm -f clickhouse/config.xml || true)
-    $(ln -s ${ORIGINAL_CH_CFG} clickhouse/config.xml)
+switch_ch_config_to_original () {
+    echo "Switching Clickhouse configs to original..."
+
+    for CH_NODE in ch01 ch02;
+    do
+        $(rm -f clickhouse/${CH_NODE}/config.xml || true)
+        $(ln -s ${ORIGINAL_CH_CFG} clickhouse/${CH_NODE}/config.xml)
+    done
 }
 
 
-updated_ch () {
-    echo "Switching Clickhouse to original config..."
-    $(rm -f clickhouse/config.xml || true)
-    $(ln -s ${UPDATED_CH_CFG} clickhouse/config.xml)
+update_ch_config () {
+    echo "Switching Clickhouse configs with new Zookeeper cluster..."
+
+    for CH_NODE in ch01 ch02;
+    do
+        $(rm -f clickhouse/${CH_NODE}/config.xml || true)
+        $(ln -s ${UPDATED_CH_CFG} clickhouse/${CH_NODE}/config.xml)
+    done
 }
 
-original_zk () {
+
+switch_zk_config_to_original () {
     echo "Switching Zookeeper configs to original..."
 
-    for ZK_NODE in zoo1 zoo2 zoo3;
+    for ZK_NODE in zoo1 zoo2 zoo3 zoo4 zoo5;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg || true)
-        $(ln -s ${ORIGINAL_ZK_CFG} ${ZK_NODE}/zoo.cfg);
+        $(rm -f zookeeper/${ZK_NODE}/zoo.cfg || true)
+        $(ln -s ${ORIGINAL_ZK_CFG} zookeeper/${ZK_NODE}/zoo.cfg);
     done
 
     for ZK_NODE in zzz1 zzz2;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg || true)
-        $(ln -s ${ORIGINAL_ZK_CFG} $ZK_NODE/zoo.cfg);
+        $(rm -f zookeeper/${ZK_NODE}/zoo.cfg || true)
+        $(ln -s ${ORIGINAL_ZK_CFG} zookeeper/$ZK_NODE/zoo.cfg);
     done
 
-    $(sed -i '1 s/.*/1/' zzz1/data/myid)
-    $(sed -i '1 s/.*/2/' zzz2/data/myid)
+    $(sed -i '1 s/.*/1/' zookeeper/zzz1/data/myid)
+    $(sed -i '1 s/.*/2/' zookeeper/zzz2/data/myid)
 }
 
-joint_zk () {
+
+switch_zk_config_to_joint () {
     echo "Switching Zookeeper configs to joint..."
 
-    for ZK_NODE in zoo1 zoo2 zoo3;
+    for ZK_NODE in zoo1 zoo2 zoo3 zoo4 zoo5;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg || true)
-        $(ln -s ${JOINT_ZK_CFG} $ZK_NODE/zoo.cfg)
+        $(rm -f zookeeper/${ZK_NODE}/zoo.cfg || true)
+        $(ln -s ${JOINT_ZK_CFG} zookeeper/$ZK_NODE/zoo.cfg)
     done
 
     for ZK_NODE in zzz1 zzz2;
     do
-        $(rm -f ${ZK_NODE}/zoo.cfg || true)
-        $(ln -s ${JOINT_ZK_CFG} $ZK_NODE/zoo.cfg);
+        $(rm -f zookeeper/${ZK_NODE}/zoo.cfg || true)
+        $(ln -s ${JOINT_ZK_CFG} zookeeper/$ZK_NODE/zoo.cfg);
     done
-    
-    $(sed -i '1 s/.*/4/' zzz1/data/myid)
-    $(sed -i '1 s/.*/5/' zzz2/data/myid)
+
+    $(sed -i '1 s/.*/6/' zookeeper/zzz1/data/myid)
+    $(sed -i '1 s/.*/7/' zookeeper/zzz2/data/myid)
+}
+
+
+init_clickhouse_cluster () {
+    echo "Prepare tables in the Clickhouse..."
+
+    for CH_NODE in ch01 ch02;
+    do
+        echo "Initialize ${CH_NODE}..."
+        $(docker exec -it ${CH_NODE} clickhouse-client --query="CREATE DATABASE testing")
+        $(docker exec -it ${CH_NODE} clickhouse-client --query="CREATE TABLE testing.sample (EventDate DateTime,Text String,ver UInt16) ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/sample', '{replica}', ver) PARTITION BY toYYYYMM(EventDate) ORDER BY EventDate")
+    done
+}
+
+
+autotest () {
+    echo "================================================="
+    echo "                     AUTOTEST                    "
+    echo "================================================="
+
+    find_zk_leader
+
+    echo ""
+    echo "Prepare configuration..."
+    switch_zk_config_to_joint
+
+    echo ""
+    echo "-------------------------------------------------"
+    echo "            Prepare source cluster...      "
+    echo "-------------------------------------------------"
+    for INDEX in 1 2 3 4 5;
+    do
+        echo "Restarting zoo${INDEX}..."
+        CONTAINER="zoo${INDEX}"
+        docker container restart ${CONTAINER} > /dev/null 2>&1
+        sleep 20
+    done
+
+    sleep 20
+    echo "-------------------------------------------------"
+    echo "           Prepare target cluster...      "
+    echo "-------------------------------------------------"
+    echo "Stopping idle Zookeeper node (zzz3)..."
+    $(docker stop zzz3 > /dev/null 2>&1)
+
+    for INDEX in 1 2;
+    do
+        echo "Restarting zzz${INDEX}..."
+        CONTAINER="zzz${INDEX}"
+        docker container restart ${CONTAINER} > /dev/null 2>&1
+        sleep 20
+    done
+
+    echo "-------------------------------------------------"
+    echo "   Waiting for synchronization of new hosts..."
+    echo "-------------------------------------------------"
+    sleep 30
+
+    update_ch_config
+    echo "Restarting Clickhouse cluster..."
+    $(docker restart ch01 ch02 > /dev/null 2>&1)
+    sleep 10
+
+    echo "-------------------------------------------------"
+    echo "       Stopping old Zookeeper cluster..."
+    echo "-------------------------------------------------"
+    echo "Stopping containers..."
+    $(docker stop zoo1 zoo2 zoo3 zoo4 zoo5 > /dev/null 2>&1)
+    switch_zk_config_to_original
+
+    echo "-------------------------------------------------"
+    echo "     Rebuilding a target Zookeeper cluster...    "
+    echo "-------------------------------------------------"
+    echo "Restarting target cluster..."
+    $(docker restart zzz1 zzz2 > /dev/null 2>&1)
+    sleep 20
+    $(docker start zzz3 > /dev/null 2>&1)
+
+    echo ""
+    echo "================================================="
+    echo "                   TEST FINISHED       "
+    echo "================================================="
 }
 
 
 prepare () {
+    echo "============================"
+    echo "       Prepare stand     "
+    echo "============================"
+    echo ""
     echo "Cleanup old data..."
     cleanup
-    
-    echo "Prepare stand..."
-    original_zk
-    original_ch
-    $(mkdir -p clickhouse/data || true)
-    $(docker-compose up -d)
-    sleep 2
 
-    echo "Prepare table in the Clickhouse..."
-    $(pwd)/init-ch
-    echo "Stand is ready!"
+    echo "Prepare CH and ZK configs.."
+    switch_zk_config_to_original
+    switch_ch_config_to_original
+
+    echo "Create mandatory directories..."
+    $(mkdir -p clickhouse/ch01/data || true)
+    $(mkdir -p clickhouse/ch02/data || true)
+
+    echo "Prepare composition..."
+    $(docker-compose up -d > /dev/null 2>&1)
+
+    sleep 2
+    init_clickhouse_cluster
+
+    echo ""
+    echo "============================"
+    echo "       Stand is ready!     "
+    echo "============================"
 }
 
 
-if [[ $1 == "leader" ]];
-then
-    find_leader
-fi
+cleanup () {
+    echo "Cleanup previous stand..."
+
+    $(docker-compose down --remove-orphans > /dev/null 2>&1)
+    $(sudo rm -rf clickhouse/ch*/data/* || true)
+    $(rm -rf zookeeper/zoo*/data/version-2 || true)
+    $(rm -rf zookeeper/zzz*/data/version-2 || true)
+
+    echo ""
+    echo "============================"
+    echo "      Cleanup is done!      "
+    echo "============================"
+    echo ""
+}
+
 
 if [[ $1 == "cleanup" ]];
 then
@@ -110,22 +219,34 @@ then
     prepare
 fi
 
+if [[ $1 == "autotest" ]];
+then
+    autotest
+fi
+
+
+
 if [[ $1 == "zk" && $2 == "original" ]];
 then
-    original_zk
+    switch_zk_config_to_original
 fi
 
 if [[ $1 == "zk" && $2 == "joint" ]];
 then
-    joint_zk
+    switch_zk_config_to_joint
+fi
+
+if [[ $1 == "zk" && $2 == "leader" ]];
+then
+    find_zk_leader
 fi
 
 if [[ $1 == "ch" && $2 == "original" ]];
 then
-    original_ch
+    switch_ch_config_to_original
 fi
 
 if [[ $1 == "ch" && $2 == "updated" ]];
 then
-    updated_ch
+    update_ch_config
 fi

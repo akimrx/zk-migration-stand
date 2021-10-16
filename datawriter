@@ -3,12 +3,12 @@
 import time
 import random
 import string
-import requests
 import logging
+import asyncio
+import aiohttp
 
 from datetime import datetime as dt
 
-CH = "http://localhost:8123"
 
 logging.basicConfig(
     level="INFO",
@@ -17,29 +17,45 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def insert_into_clickhouse():
+
+async def fetch(session, url, metadata):
+    try:
+        async with session.post(url, verify_ssl=False) as response:
+            msg = await response.text()
+            try:
+                assert response.status == 200
+            except AssertionError:
+                logger.warning(f"{msg.rstrip()} ({metadata})")
+            else:
+                logger.info(f"Successfully written data to the ClickHouse ({metadata})")
+    except Exception as err:
+        logger.error(err)
+
+
+async def insert_into_clickhouse(port: int = 8123):
     date = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     text = "".join(random.choice(string.ascii_letters) for _ in range(20))
     query = f"INSERT INTO testing.sample(Text, EventDate, ver) VALUES (\'{text}\', \'{date}\', 1);"
-    url = f"{CH}/?user=default&query={query}"
-    
-    r = requests.post(url)
-    if r.ok:
-        logger.info(f"Successfully written to CH.")
-    else:
-        logger.error(f"Response code: {r.status_code}. Content: {r.content}")
+    url = f"http://localhost:{port}/?user=default&query={query}"
+
+    metadata = f"PORT: {port}"
+
+    async with aiohttp.ClientSession() as session:
+        await fetch(session, url, metadata)
+
+
+async def inserts():
+    queries = [insert_into_clickhouse(port) for port in (8121, 8122)]
+    await asyncio.wait(queries)
 
 
 def main():
+    loop = asyncio.get_event_loop()
     while True:
-        try:
-            insert_into_clickhouse()
-        except Exception as error:
-            logger.error(f"Something went wrong: {error}")
-        finally:
-            time.sleep(5)
+        loop.run_until_complete(inserts())
+        time.sleep(3)
+    loop.close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-

@@ -3,15 +3,27 @@ version: '3'
 services:
   ch01:
     image: yandex/clickhouse-server
+    restart: unless-stopped
     container_name: ch01
     hostname: ch01
-    restart: unless-stopped
     volumes:
-      - /home/akimrx/zk-migration-stand/clickhouse/data:/var/lib/clickhouse
-      - /home/akimrx/zk-migration-stand/clickhouse/config.xml:/etc/clickhouse-server/config.xml
-      - /home/akimrx/zk-migration-stand/clickhouse/users.xml:/etc/clickhouse-server/users.xml
+      - ./clickhouse/ch01/data:/var/lib/clickhouse
+      - ./clickhouse/ch01/config.xml:/etc/clickhouse-server/config.xml
+      - ./clickhouse/ch01/users.xml:/etc/clickhouse-server/users.xml
     ports:
-      - 8123:8123
+      - 8121:8123
+
+  ch02:
+    image: yandex/clickhouse-server
+    restart: unless-stopped
+    container_name: ch02
+    hostname: ch02
+    volumes:
+      - ./clickhouse/ch02/data:/var/lib/clickhouse
+      - ./clickhouse/ch02/config.xml:/etc/clickhouse-server/config.xml
+      - ./clickhouse/ch02/users.xml:/etc/clickhouse-server/users.xml
+    ports:
+      - 8122:8123
 
   zoo1:
     image: zookeeper
@@ -21,8 +33,8 @@ services:
     ports:
       - 2181:2181
     volumes:
-      - /home/akimrx/zk-migration-stand/zoo1/data:/data
-      - /home/akimrx/zk-migration-stand/zoo1/zoo.cfg:/conf/zoo.cfg:ro
+      - ./zookeeper/zoo1/data:/data
+      - ./zookeeper/zoo1/zoo.cfg:/conf/zoo.cfg:ro
 
   zoo2:
     image: zookeeper
@@ -32,8 +44,8 @@ services:
     ports:
       - 2182:2181
     volumes:
-      - /home/akimrx/zk-migration-stand/zoo2/zoo.cfg:/conf/zoo.cfg:ro
-      - /home/akimrx/zk-migration-stand/zoo2/data:/data
+      - ./zookeeper/zoo2/data:/data
+      - ./zookeeper/zoo2/zoo.cfg:/conf/zoo.cfg:ro
 
   zoo3:
     image: zookeeper
@@ -43,8 +55,30 @@ services:
     ports:
       - 2183:2181
     volumes:
-      - /home/akimrx/zk-migration-stand/zoo3/zoo.cfg:/conf/zoo.cfg:ro
-      - /home/akimrx/zk-migration-stand/zoo3/data:/data
+      - ./zookeeper/zoo3/data:/data
+      - ./zookeeper/zoo3/zoo.cfg:/conf/zoo.cfg:ro
+
+  zoo4:
+    image: zookeeper
+    restart: unless-stopped
+    container_name: zoo4
+    hostname: zoo4
+    ports:
+      - 2184:2181
+    volumes:
+      - ./zookeeper/zoo4/data:/data
+      - ./zookeeper/zoo4/zoo.cfg:/conf/zoo.cfg:ro
+
+  zoo5:
+    image: zookeeper
+    restart: unless-stopped
+    container_name: zoo5
+    hostname: zoo5
+    ports:
+      - 2185:2181
+    volumes:
+      - ./zookeeper/zoo5/data:/data
+      - ./zookeeper/zoo5/zoo.cfg:/conf/zoo.cfg:ro
 
   zzz1:
     image: zookeeper
@@ -52,10 +86,10 @@ services:
     container_name: zzz1
     hostname: zzz1
     ports:
-      - 2184:2181
+      - 2186:2181
     volumes:
-      - /home/akimrx/zk-migration-stand/zzz1/zoo.cfg:/conf/zoo.cfg:ro
-      - /home/akimrx/zk-migration-stand/zzz1/data:/data
+      - ./zookeeper/zzz1/data:/data
+      - ./zookeeper/zzz1/zoo.cfg:/conf/zoo.cfg:ro
 
   zzz2:
     image: zookeeper
@@ -63,10 +97,10 @@ services:
     container_name: zzz2
     hostname: zzz2
     ports:
-      - 2185:2181
+      - 2187:2181
     volumes:
-      - /home/akimrx/zk-migration-stand/zzz2/zoo.cfg:/conf/zoo.cfg:ro
-      - /home/akimrx/zk-migration-stand/zzz2/data:/data
+      - ./zookeeper/zzz2/data:/data
+      - ./zookeeper/zzz2/zoo.cfg:/conf/zoo.cfg:ro
 
   zzz3:
     image: zookeeper
@@ -74,8 +108,8 @@ services:
     container_name: zzz3
     hostname: zzz3
     ports:
-      - 2186:2181
+      - 2188:2181
     volumes:
-      - /home/akimrx/zk-migration-stand/zzz3/zoo.cfg:/conf/zoo.cfg:ro
-      - /home/akimrx/zk-migration-stand/zzz3/data:/data
+      - ./zookeeper/zzz3/data:/data
+      - ./zookeeper/zzz3/zoo.cfg:/conf/zoo.cfg:ro
 

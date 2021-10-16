@@ -18,7 +18,6 @@ find_leader () {
     done
 }
 
-
 cleanup () {
     echo "Cleanup previous stand..."
     $(docker-compose down --remove-orphans)

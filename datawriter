@@ -35,7 +35,7 @@ async def fetch(session, url, metadata):
 async def insert_into_clickhouse(port: int = 8123):
     date = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     text = "".join(random.choice(string.ascii_letters) for _ in range(20))
-    query = f"INSERT INTO testing.sample(Text, EventDate, ver) VALUES (\'{text}\', \'{date}\', 1);"
+    query = f"INSERT INTO testing.sample(Text, EventDate, ver) VALUES ('{text}', '{date}', 1);"
     url = f"http://localhost:{port}/?user=default&query={query}"
 
     metadata = f"PORT: {port}"

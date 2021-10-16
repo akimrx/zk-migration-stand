@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+
+ORIGINAL_ZK_CFG="zoo-original.cfg"
+JOINT_ZK_CFG="zoo-joint.cfg"
+
+ORIGINAL_CH_CFG="config-original.xml"
+UPDATED_CH_CFG="config-updated.xml"
+
+
+cleanup () {
+    $(docker-compose down --remove-orphans)
+    $(rm -rf clickhouse/data/*)
+    
+    for ZK_NODE in zzz1 zzz2 zzz3 zoo1 zoo2 zoo3;
+    do
+        $(rm -rf {$ZK_NODE}/data/version*/*)
+    done
+}
+
+original_ch () {
+    echo "Switching Clickhouse to original config..."
+    $(rm -f clickhouse/config.xml)
+    $(ln -s ${ORIGINAL_CH_CFG} clickhouse/config.xml)
+}
+
+
+updated_ch () {
+    echo "Switching Clickhouse to original config..."
+    $(rm -f clickhouse/config.xml)
+    $(ln -s ${UPDATED_CH_CFG} clickhouse/config.xml)
+}
+
+original_zk () {
+    echo "Switching Zookeeper configs to original..."
+
+    for ZK_NODE in zoo1 zoo2 zoo3;
+    do
+        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(ln -s ${ORIGINAL_ZK_CFG} ${ZK_NODE}/zoo.cfg);
+    done
+
+    for ZK_NODE in zzz1 zzz2;
+    do
+        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(ln -s ${ORIGINAL_ZK_CFG} $ZK_NODE/zoo.cfg);
+    done
+
+    $(sed -i '1 s/.*/1/' zzz1/data/myid)
+    $(sed -i '1 s/.*/2/' zzz2/data/myid)
+}
+
+joint_zk () {
+    echo "Switching Zookeeper configs to joint..."
+
+    for ZK_NODE in zoo1 zoo2 zoo3;
+    do
+        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(ln -s ${JOINT_ZK_CFG} $ZK_NODE/zoo.cfg)
+    done
+
+    for ZK_NODE in zzz1 zzz2;
+    do
+        $(rm -f ${ZK_NODE}/zoo.cfg)
+        $(ln -s ${JOINT_ZK_CFG} $ZK_NODE/zoo.cfg);
+    done
+    
+    $(sed -i '1 s/.*/4/' zzz1/data/myid)
+    $(sed -i '1 s/.*/5/' zzz2/data/myid)
+}
+
+
+prepare () {
+    cleanup
+    original_zk
+    original_ch
+    $(docker-compose up -d)
+}
+
+
+if [[ $1 == "cleanup" ]];
+then
+    cleanup
+fi
+
+if [[ $1 == "prepare" ]];
+then
+    prepare
+fi
+
+if [[ $1 == "zk" && $2 == "original" ]];
+then
+    original_zk
+fi
+
+if [[ $1 == "zk" && $2 == "joint" ]];
+then
+    joint_zk
+fi
+
+if [[ $1 == "ch" && $2 == "original" ]];
+then
+    original_ch
+fi
+
+if [[ $1 == "ch" && $2 == "updated" ]];
+then
+    updated_ch
+fi

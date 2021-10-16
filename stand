@@ -20,12 +20,9 @@ find_leader () {
 cleanup () {
     $(docker-compose down --remove-orphans)
     $(rm -rf clickhouse/data/*)
-    
-    for ZK_NODE in zzz1 zzz2 zzz3 zoo1 zoo2 zoo3;
-    do
-        $(rm -rf {$ZK_NODE}/data/version*/*)
-    done
-}
+    $(rm -rf zoo*/data/version-2)
+    $(rm -rf zzz*/data/version-2)
+    }
 
 original_ch () {
     echo "Switching Clickhouse to original config..."

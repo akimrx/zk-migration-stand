@@ -1,21 +1,11 @@
 # Intro
 
-* Create two independent Zookeeper clusters, one of 5 hosts, the other of 3 hosts
-* Connect to a cluster of 5 Clickhouse hosts
+* Create two Zookeeper clusters with (6 nodes)
+* Create two Clickhouse clusters (4 nodes)
+* Connect Clickhouse to one ZK cluster
 * Start writing data to Clickhouse
-* Transfer data from a 5-host cluster to a 3-host cluster in the following way:
-    * Adding 2 Zookeeper hosts from a 3-host cluster to a 5-host cluster, updating the configuration on 7 hosts
-    * Stopping the remaining host from the 3-host cluster
-    * Alternately restart the hosts of the old cluster with an interval of about 30 seconds
-    * Alternately restart two hosts from the "new" cluster with an interval of about 30 seconds
-    * Waiting for data synchronization in the combined Zookeeper cluster
-    * Updating the client configuration, which will only lead to two new Zookeeper hosts
-    * Restart the clients that use Zookeeper and make sure that everything is fine
-    * Update the configuration of the new 3-host cluster to its original state, so that the cluster eventually consists of 3 hosts again
-    * Stopping a cluster of 5 hosts
-    * Reboot the new two hosts with an interval of 10-30 seconds, the last to launch the remaining inactive host
-    * Make sure that clients can work with Zookeeper
-    * Add the last cluster host to the client configuration and restart the services
+* Change ZK cluster for two Clickhouse nodes
+
 
 
 # Autorun
@@ -40,8 +30,14 @@ pip3 install -r requirements.txt
 ./datawriter
 
 
-# Wait for 10 min
-./stand autotest
+# Wait for 1 min and change ZK cluster for CH cluster (ch03, ch04)
+./stand ch updated
+
+# Restore replication for CH cluster with new ZK
+./stand ch restore
+
+# Check CH clusters state
+./stand ch check
 
 
 # Check that everything went as expected and delete stand

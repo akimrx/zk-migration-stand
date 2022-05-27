@@ -21,15 +21,15 @@
 
     <zookeeper>
         <node index="1">
-            <host>zoo1</host>
+            <host>zzz1</host>
             <port>2181</port>
         </node>
         <node index="2">
-            <host>zoo2</host>
+            <host>zzz2</host>
             <port>2181</port>
         </node>
         <node index="3">
-            <host>zoo3</host>
+            <host>zzz3</host>
             <port>2181</port>
         </node>
         <session_timeout_ms>120000</session_timeout_ms>
@@ -38,7 +38,7 @@
     
     <macros>
       <shard>01</shard>
-      <replica>ch02</replica>
+      <replica>ch04</replica>
     </macros>
 
     <builtin_dictionaries_reload_interval>3600</builtin_dictionaries_reload_interval>

@@ -38,7 +38,7 @@
     
     <macros>
       <shard>01</shard>
-      <replica>ch02</replica>
+      <replica>ch04</replica>
     </macros>
 
     <builtin_dictionaries_reload_interval>3600</builtin_dictionaries_reload_interval>

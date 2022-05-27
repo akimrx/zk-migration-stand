@@ -45,16 +45,20 @@ async def insert_into_clickhouse(port: int = 8123):
 
 
 async def inserts():
-    queries = [insert_into_clickhouse(port) for port in (8121, 8122)]
+    queries = [insert_into_clickhouse(port) for port in (8121, 8122, 8123, 8124)]
     await asyncio.wait(queries)
 
 
 def main():
     loop = asyncio.get_event_loop()
-    while True:
-        loop.run_until_complete(inserts())
-        time.sleep(3)
-    loop.close()
+    try:
+        while True:
+            loop.run_until_complete(inserts())
+            time.sleep(5)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        loop.close()
 
 
 if __name__ == '__main__':

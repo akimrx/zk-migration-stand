@@ -23,7 +23,7 @@ find_zk_leader () {
 switch_ch_config_to_original () {
     echo "Switching Clickhouse configs to original..."
 
-    for CH_NODE in ch01 ch02;
+    for CH_NODE in ch01 ch02 ch03 ch04;
     do
         $(rm -f clickhouse/${CH_NODE}/config.xml || true)
         $(ln -s ${ORIGINAL_CH_CFG} clickhouse/${CH_NODE}/config.xml)
@@ -34,10 +34,33 @@ switch_ch_config_to_original () {
 update_ch_config () {
     echo "Switching Clickhouse configs with new Zookeeper cluster..."
 
-    for CH_NODE in ch01 ch02;
+    for CH_NODE in ch03 ch04;
     do
         $(rm -f clickhouse/${CH_NODE}/config.xml || true)
         $(ln -s ${UPDATED_CH_CFG} clickhouse/${CH_NODE}/config.xml)
+        docker restart ${CH_NODE}
+        echo "Clickhouse ${CH_NODE} restarted with new config"
+    done
+}
+
+restore_ch_replication () {
+    echo "Restoring replication..."
+
+    for CH_NODE in ch03 ch04;
+    do
+        echo "Restoring ${CH_NODE}..."
+        $(docker exec -it ${CH_NODE} clickhouse-client --query="SYSTEM RESTORE REPLICA testing.sample")
+    done
+}
+
+check_ch_replication_status () {
+    echo "Checkout CH replicas status"
+
+    for PORT in 8121 8122 8123 8124;
+    do
+        echo "$PORT"
+        curl "http://localhost:${PORT}/replicas_status"
+        echo ""
     done
 }
 
@@ -45,13 +68,17 @@ update_ch_config () {
 switch_zk_config_to_original () {
     echo "Switching Zookeeper configs to original..."
 
-    for ZK_NODE in zoo1 zoo2 zoo3 zoo4 zoo5;
+    for ZK_NODE in zoo1 zoo2 zoo3;
     do
         $(rm -f zookeeper/${ZK_NODE}/zoo.cfg || true)
         $(ln -s ${ORIGINAL_ZK_CFG} zookeeper/${ZK_NODE}/zoo.cfg);
     done
 
-    for ZK_NODE in zzz1 zzz2;
+    $(sed -i '1 s/.*/1/' zookeeper/zoo1/data/myid)
+    $(sed -i '1 s/.*/2/' zookeeper/zoo2/data/myid)
+    $(sed -i '1 s/.*/3/' zookeeper/zoo3/data/myid)
+
+    for ZK_NODE in zzz1 zzz2 zzz3;
     do
         $(rm -f zookeeper/${ZK_NODE}/zoo.cfg || true)
         $(ln -s ${ORIGINAL_ZK_CFG} zookeeper/$ZK_NODE/zoo.cfg);
@@ -59,13 +86,14 @@ switch_zk_config_to_original () {
 
     $(sed -i '1 s/.*/1/' zookeeper/zzz1/data/myid)
     $(sed -i '1 s/.*/2/' zookeeper/zzz2/data/myid)
+    $(sed -i '1 s/.*/3/' zookeeper/zzz3/data/myid)
 }
 
 
 switch_zk_config_to_joint () {
     echo "Switching Zookeeper configs to joint..."
 
-    for ZK_NODE in zoo1 zoo2 zoo3 zoo4 zoo5;
+    for ZK_NODE in zoo1 zoo2 zoo3 zzz1 zzz2 zzz3;
     do
         $(rm -f zookeeper/${ZK_NODE}/zoo.cfg || true)
         $(ln -s ${JOINT_ZK_CFG} zookeeper/$ZK_NODE/zoo.cfg)
@@ -85,7 +113,7 @@ switch_zk_config_to_joint () {
 init_clickhouse_cluster () {
     echo "Prepare tables in the Clickhouse..."
 
-    for CH_NODE in ch01 ch02;
+    for CH_NODE in ch01 ch02 ch03 ch04;
     do
         echo "Initialize ${CH_NODE}..."
         $(docker exec -it ${CH_NODE} clickhouse-client --query="CREATE DATABASE testing")
@@ -179,6 +207,8 @@ prepare () {
     echo "Create mandatory directories..."
     $(mkdir -p clickhouse/ch01/data || true)
     $(mkdir -p clickhouse/ch02/data || true)
+    $(mkdir -p clickhouse/ch03/data || true)
+    $(mkdir -p clickhouse/ch04/data || true)
 
     echo "Prepare composition..."
     $(docker-compose up -d > /dev/null 2>&1)
@@ -249,4 +279,14 @@ fi
 if [[ $1 == "ch" && $2 == "updated" ]];
 then
     update_ch_config
+fi
+
+if [[ $1 == "ch" && $2 == "restore" ]];
+then
+    restore_ch_replication
+fi
+
+if [[ $1 == "ch" && $2 == "check" ]];
+then
+    check_ch_replication_status
 fi

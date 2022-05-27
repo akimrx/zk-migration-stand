@@ -32,14 +32,6 @@
             <host>zoo3</host>
             <port>2181</port>
         </node>
-        <node index="4">
-            <host>zoo4</host>
-            <port>2181</port>
-        </node>
-        <node index="5">
-            <host>zoo5</host>
-            <port>2181</port>
-        </node>
         <session_timeout_ms>120000</session_timeout_ms>
         <operation_timeout_ms>30000</operation_timeout_ms>
     </zookeeper>

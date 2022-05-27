@@ -29,6 +29,13 @@ pip3 install -r requirements.txt
 # Run datawriter script
 ./datawriter
 
+# Check replicas
+```sql
+SELECT replica_name, database, table, zookeeper_path, total_replicas, active_replicas
+FROM system.replicas
+FORMAT Vertical;
+```
+
 
 # Wait for 1 min and change ZK cluster for CH cluster (ch03, ch04)
 ./stand ch updated

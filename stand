@@ -43,6 +43,22 @@ update_ch_config () {
     done
 }
 
+remove_old_replicas_from_zk() {
+    echo "Removing old replicas from previous ZK..."
+
+    for CH_NODE in ch03 ch04;
+    do
+        docker exec -it zoo1 zkCli.sh deleteall /clickhouse/tables/01/sample/replicas/${CH_NODE} &> /dev/null
+        echo "${CH_NODE} removed"
+    done
+
+    for CH_NODE in ch01 ch02;
+    do
+        echo "Restarting clickhouse ${CH_NODE}"
+        docker restart ${CH_NODE}
+    done
+}
+
 restore_ch_replication () {
     echo "Restoring replication..."
 
@@ -51,6 +67,12 @@ restore_ch_replication () {
         echo "Restoring ${CH_NODE}..."
         $(docker exec -it ${CH_NODE} clickhouse-client --query="SYSTEM RESTORE REPLICA testing.sample")
     done
+
+    # for CH_NODE in ch01 ch02;
+    # do
+    #     echo "Restarting replication for ${CH_NODE}"
+    #     $(docker exec -it ${CH_NODE} clickhouse-client --query="SYSTEM RESTART REPLICA testing.sample")
+    # done
 }
 
 check_ch_replication_status () {
@@ -279,6 +301,7 @@ fi
 if [[ $1 == "ch" && $2 == "updated" ]];
 then
     update_ch_config
+    remove_old_replicas_from_zk
 fi
 
 if [[ $1 == "ch" && $2 == "restore" ]];
